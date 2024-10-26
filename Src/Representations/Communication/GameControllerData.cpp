@@ -132,6 +132,7 @@ void GameControllerData::read(In& stream)
   STREAM(teams);
   STREAM(timeLastPacketReceived);
   STREAM(isTrueData);
+  STREAM(rollOutResult);
 }
 
 void GameControllerData::write(Out& stream) const
@@ -151,6 +152,7 @@ void GameControllerData::write(Out& stream) const
   STREAM(teams);
   STREAM(timeLastPacketReceived);
   STREAM(isTrueData);
+  STREAM(rollOutResult);
 }
 
 void GameControllerData::reg()
@@ -171,4 +173,5 @@ void GameControllerData::reg()
   REG(TeamInfo(&)[2], teams);
   REG(timeLastPacketReceived);
   REG(isTrueData);
+  REG(rollOutResult);
 }

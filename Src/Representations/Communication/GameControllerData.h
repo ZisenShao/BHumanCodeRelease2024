@@ -19,6 +19,7 @@ struct GameControllerData : public RoboCup::RoboCupGameControlData, public Strea
 
   unsigned timeLastPacketReceived = 0; /**< Time when the last GameController packet has been received. */
   bool isTrueData = false; /**< Whether the GameController packet does not delay some transitions that are normally signaled by a whistle. */
+  std::string rollOutResult  = "Playing"; /**< The result of the roll out. */
 
 protected:
   /**

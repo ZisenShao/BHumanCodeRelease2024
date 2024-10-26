@@ -120,6 +120,8 @@ private:
   unsigned timeWhenLastRobotMoved = 0;
   unsigned timeWhenStateBegan = 0;
   unsigned timeWhenSetPlayBegan = 0;
+  unsigned timeWhenRolloutBegan = 0;
+  unsigned rollOutTimeLimit = 20 * 1000; // 20 seconds
   Robot robots[numOfRobots];
   int ballContacts[2];
 
@@ -133,12 +135,12 @@ private:
     notOut,
     goalBySecondTeam,
     goalByFirstTeam,
-    kickInSecondTeam,
-    kickInFirstTeam,
-    cornerKickSecondTeam,
-    cornerKickFirstTeam,
-    goalKickSecondTeam,
-    goalKickFirstTeam
+    outBySecondTeam,
+    outByFirstTeam,
+    ownGoalOutBySecondTeam,
+    ownGoalOutByFirstTeam,
+    opponentGoalOutBySecondTeam,
+    opponentGoalOutByFirstTeam
   };
 
 public:
@@ -229,6 +231,8 @@ private:
 
   /** Resets the sets of players that touched the ball. */
   void resetBallContacts();
+
+  void reset();
 
   /** Update the ball position based on the rules. */
   BallOut updateBall();
