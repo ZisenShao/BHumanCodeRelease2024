@@ -796,8 +796,10 @@ void GameController::reset()
 {
   timeWhenRolloutBegan = Time::getCurrentSystemTime();
   float xRobotPos, yRobotPos, xBallPos, yBallPos;
-  xBallPos = (float(rand()) / float(RAND_MAX)) * (fieldDimensions.xPosOwnGoalLine - fieldDimensions.xPosOwnPenaltyArea) + fieldDimensions.xPosOwnPenaltyArea;
-  yBallPos = (float(rand()) / float(RAND_MAX)) * (fieldDimensions.yPosLeftPenaltyArea - fieldDimensions.yPosRightPenaltyArea) + fieldDimensions.yPosRightPenaltyArea;
+  xBallPos = (float(rand()) / float(RAND_MAX)) * 
+             (fieldDimensions.xPosOwnGoalArea - fieldDimensions.xPosOwnPenaltyArea) + 
+             fieldDimensions.xPosOwnPenaltyArea;
+  yBallPos = (2.0f * float(rand()) / float(RAND_MAX) - 1.0f) * fieldDimensions.yPosLeftPenaltyArea;
 
   SimulatedRobot::moveBall(Vector3f(xBallPos, yBallPos, 50.f), true);
 
@@ -805,36 +807,31 @@ void GameController::reset()
   {
     if (robots[i].simulatedRobot && robots[i].info->penalty == PENALTY_NONE)
     {
-      // Randomly put robot in a area close to the goal, facing directly to the ball
-      do
-      {
-        xRobotPos = (float(rand()) / float(RAND_MAX)) * (fieldDimensions.xPosOwnGoalLine - (-2500)) + (-2500);
-        yRobotPos = (float(rand()) / float(RAND_MAX)) * (fieldDimensions.yPosLeftTouchline - fieldDimensions.yPosRightTouchline) + fieldDimensions.yPosRightTouchline;
-      } while (xRobotPos >= fieldDimensions.xPosOwnGoalLine && xRobotPos <= fieldDimensions.xPosOwnGoalArea && yRobotPos >= fieldDimensions.yPosRightGoalArea && yRobotPos <= fieldDimensions.yPosLeftGoalArea); // If in goal area, reselect the initial position
+      // Place robot in the same area as the ball, facing directly to the ball towards goal
+      xRobotPos = (float(rand()) / float(RAND_MAX)) * 
+            (xBallPos - fieldDimensions.xPosOwnPenaltyArea) + 
+            fieldDimensions.xPosOwnPenaltyArea + 50.0f;
+                  
+      // Scale robot y position between -1 and 1 times yPosLeftPenaltyArea (2000)  
+      yRobotPos = (2.0f * float(rand()) / float(RAND_MAX) - 1.0f) * fieldDimensions.yPosLeftPenaltyArea;
 
+      // Calculate rotation to face the ball
       float rot = float(atan2(yBallPos - yRobotPos, xBallPos - xRobotPos));
 
+
       // Debug print
-      std::cout << "Ball position: " << xBallPos << ", " << yBallPos << " Robot position: " << xRobotPos << ", " << yRobotPos << std::endl;
-      std::cout << xBallPos - xRobotPos << ", " << yBallPos - yRobotPos << ", " << yRobotPos << " Rotation: " << rot << std::endl;
+      std::cout << "Ball position: " << xBallPos << ", " << yBallPos << std::endl;
+      std::cout << "Robot position: " << xRobotPos << ", " << yRobotPos << std::endl;
+      std::cout << "Relative position: " << xBallPos - xRobotPos << ", " << yBallPos - yRobotPos << std::endl;
+      std::cout << "Rotation: " << rot << std::endl;
 
       robots[i].simulatedRobot->moveRobot(Vector3f(xRobotPos, yRobotPos, dropHeight), Vector3f(0.f, 0.f, rot), true);
       break;
     }
   }
-  gameControllerData.state = STATE_SET ; gameControllerData.setPlay = SET_PLAY_NONE;
 
-  // fieldDimensions.xPosOpponentGroundLine //4000
-  // fieldDimensions.yPosLeftSideline //3000
-  // fieldDimensions.yPosRightSideline //-3000
-
-  // fieldDimensions.xPosOpponentPenaltyArea //2850
-  // fieldDimensions.yPosLeftPenaltyArea //2000
-  // fieldDimensions.yPosRightPenaltyArea //-2000
-
-  // fieldDimensions.xPosOpponentGoalArea //3900
-  // fieldDimensions.yPosLeftGoalArea //1100
-  // fieldDimensions.yPosRightGoalArea //-1100
+  gameControllerData.state = STATE_SET;
+  gameControllerData.setPlay = SET_PLAY_NONE;
 
   VERIFY(playing());
 }
@@ -850,13 +847,6 @@ void GameController::resetPenaltyTimes()
     robot.timeWhenPenalized = 0;
 }
 
-void GameController::resetBallContacts()
-{
-  for(auto& ballContact : ballContacts)
-    ballContact = 0;
-  lastBallContactRobots[0] = lastBallContactRobots[1] = nullptr;
-}
-
 GameController::BallOut GameController::updateBall()
 {
   BallOut result = notOut;
@@ -868,14 +858,7 @@ GameController::BallOut GameController::updateBall()
                                ballPos.y() - sgn(ballPos.y()) * (ballSpecification.radius + fieldDimensions.fieldLinesWidth / 2.f));
   if(!fieldDimensions.isInsideField(ballInnerEdge))
   {
-    // Goals can be scored in penalty shootouts, without having touched the ball (opponent own goals),
-    // or with at least two robots having touched the ball.
-    const int ballContact = ballContacts[static_cast<int>(ballPos.x() > 0.f)];
-    const bool canScore = (gameControllerData.gamePhase == GAME_PHASE_PENALTYSHOOT || !ballContact || (ballContact & (ballContact - 1)) != 0)
-                          && (gameControllerData.competitionType != COMPETITION_TYPE_SHARED_AUTONOMY
-                              || (ballPos.x() < 0.f && (!lastBallContactRobots[0] || SimulatedRobot::getNumber(lastBallContactRobots[0]) & 1)));
-    const bool insideGoal = std::abs(ballPos.y()) < fieldDimensions.yPosLeftGoal;
-    if(insideGoal && canScore) // goal
+    if (std::abs(ballPos.y()) < fieldDimensions.yPosLeftGoal) // goal
       result = ballPos.x() > 0.f ? goalBySecondTeam : goalByFirstTeam;
     else
     {
@@ -929,26 +912,8 @@ GameController::BallOut GameController::updateBall()
 
 void GameController::setLastBallContactRobot(SimRobot::Object* robot)
 {
-  const size_t teamIndex = 1 - static_cast<size_t>(SimulatedRobot::isFirstTeam(robot));
-  int& ballContact = ballContacts[teamIndex];
-  if((ballContact & 1) && ballContact > 1 && Time::getTimeSince(lastBallContactTime) > 100)
-    ballContact &= ~1;
-  ballContact |= 1 << SimulatedRobot::getNumber(robot);
-
-  // In the Shared Autonomy Challenge, a team gets a point for playing a pass.
-  // - This ball contact is by a different robot from the same team
-  // - The last ball contact was by the same team
-  // - The distance between the ball contacts is more than 1 m
-  if(gameControllerData.competitionType == COMPETITION_TYPE_SHARED_AUTONOMY
-     && lastBallContactRobots[teamIndex]
-     && robot != lastBallContactRobots[teamIndex]
-     && !teamIndex == (lastBallContactPose.rotation != 0.f)
-     && (SimulatedRobot::getPosition(robot) - lastBallContactPose.translation).norm() > 1000.f)
-    ++gameControllerData.teams[teamIndex].score;
-
-  lastBallContactPose = Pose2f(teamIndex ? 0.f : pi, SimulatedRobot::getPosition(robot));
+  lastBallContactPose = Pose2f(SimulatedRobot::isFirstTeam(robot) ? pi : 0.f, SimulatedRobot::getPosition(robot));
   lastBallContactTime = Time::getCurrentSystemTime();
-  lastBallContactRobots[teamIndex] = robot;
 }
 
 void GameController::getGameControllerData(GameControllerData& gameControllerData)
