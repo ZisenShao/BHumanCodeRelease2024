@@ -15,3 +15,8 @@ void MotionProvider::update(OdometryData& odometryData)
 {
   odometryData = static_cast<const OdometryData&>(theMotionOdometryData);
 }
+
+void MotionProvider::update(MotionInfo& motionInfo)
+{
+  motionInfo = static_cast<const MotionInfo&>(theMotionMotionInfo);
+}

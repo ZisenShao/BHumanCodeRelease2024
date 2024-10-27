@@ -10,11 +10,15 @@
 
 #include "Framework/Module.h"
 #include "Representations/MotionControl/OdometryData.h"
+#include "Representations/MotionControl/MotionInfo.h"
+
 
 MODULE(ImageFrameProvider,
 {,
   REQUIRES(MotionOdometryData),
+  REQUIRES(MotionMotionInfo),
   PROVIDES(OdometryData),
+  PROVIDES(MotionInfo),
 });
 
 class ImageFrameProvider : public ImageFrameProviderBase
@@ -24,4 +28,5 @@ class ImageFrameProvider : public ImageFrameProviderBase
    * @param odometryData The updated representation.
    */
   void update(OdometryData& odometryData);
+  void update(MotionInfo& motionInfo);
 };

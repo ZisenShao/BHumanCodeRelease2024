@@ -67,3 +67,5 @@ STREAMABLE(MotionInfo,
   (OdometryData) odometryAtLastPhaseSwitch,
   (OdometryTranslationRequest) odometryRequestAtLastPhaseSwitch,
 });
+
+STREAMABLE_WITH_BASE(MotionMotionInfo, MotionInfo, {,});
